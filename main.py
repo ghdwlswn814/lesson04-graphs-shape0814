@@ -218,3 +218,84 @@ st.caption(
     "| 분석 대상: 1년간 박스오피스 10위권 진입 영화"
 )
 
+
+# ==================================================
+# 그래프 2. 장르별 영화 총 관객 트리맵
+# ==================================================
+st.divider()
+
+st.header("그래프 2. 장르별 영화 관객 분포")
+
+st.markdown(
+    "장르별로 영화를 묶고, 각 영화의 총 관객 규모를 비교합니다."
+)
+
+# 트리맵에 사용할 데이터 준비
+treemap_df = df.copy()
+
+# 장르와 영화명 결측치 처리
+treemap_df["genre"] = (
+    treemap_df["genre"]
+    .fillna("미분류")
+    .astype(str)
+    .str.split("|")
+    .str[0]
+    .str.strip()
+)
+
+treemap_df["movieNm"] = (
+    treemap_df["movieNm"]
+    .fillna("영화명 미상")
+    .astype(str)
+)
+
+# 총 관객수를 숫자로 변환
+treemap_df["total_audi"] = pd.to_numeric(
+    treemap_df["total_audi"],
+    errors="coerce"
+).fillna(0)
+
+# 관객수가 0 이하인 데이터는 트리맵에서 제외
+treemap_df = treemap_df[
+    treemap_df["total_audi"] > 0
+].copy()
+
+# Plotly 트리맵 생성
+fig2 = px.treemap(
+    treemap_df,
+    path=["genre", "movieNm"],
+    values="total_audi",
+    title="장르 안에 포함된 영화별 총 관객",
+    color="total_audi",
+    color_continuous_scale="Blues",
+)
+
+# 영화명과 총 관객수를 마우스 오버에 표시
+fig2.update_traces(
+    textinfo="label",
+    hovertemplate=(
+        "<b>영화명: %{label}</b><br>"
+        "총 관객: %{value:,.0f}명"
+        "<extra></extra>"
+    ),
+)
+
+fig2.update_layout(
+    height=750,
+    margin=dict(t=70, b=30, l=20, r=20),
+    coloraxis_colorbar=dict(
+        title="총 관객수"
+    ),
+)
+
+st.plotly_chart(
+    fig2,
+    use_container_width=True
+)
+
+st.markdown("#### 💡 이 그래프로 알 수 있는 것")
+
+st.info(
+    "장르별 관객 규모와 각 장르 안에서 총 관객이 많은 영화 및 "
+    "상대적으로 적은 영화를 면적을 통해 비교할 수 있습니다."
+)
