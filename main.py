@@ -536,3 +536,146 @@ if not scatter_df.empty:
 
 else:
     st.warning("산점도를 그릴 수 있는 데이터가 없습니다.")
+
+# ==================================================
+# 그래프 5. 장르별 총 관객수 박스플롯
+# ==================================================
+st.divider()
+
+st.header("그래프 5. 장르별 총 관객수 분포")
+
+st.markdown(
+    "영화가 10편 이상인 장르만 골라 "
+    "장르별 총 관객수의 분포와 이상치를 비교합니다."
+)
+
+# ---------------------------------
+# 박스플롯 데이터 준비
+# ---------------------------------
+box_df = df.copy()
+
+# 장르가 여러 개면 첫 번째 장르만 사용
+box_df["genre"] = (
+    box_df["genre"]
+    .fillna("미분류")
+    .astype(str)
+    .str.split("|")
+    .str[0]
+    .str.strip()
+)
+
+box_df["genre"] = box_df["genre"].replace(
+    "", "미분류"
+)
+
+# 영화명 결측치 처리
+box_df["movieNm"] = (
+    box_df["movieNm"]
+    .fillna("영화명 미상")
+    .astype(str)
+)
+
+# 총 관객수 숫자형 변환
+box_df["total_audi"] = pd.to_numeric(
+    box_df["total_audi"],
+    errors="coerce"
+)
+
+# 총 관객수가 없는 행 제거
+box_df = box_df.dropna(
+    subset=["total_audi"]
+)
+
+# 관객수가 0보다 큰 영화만 사용
+box_df = box_df[
+    box_df["total_audi"] > 0
+].copy()
+
+# ---------------------------------
+# 영화가 10편 이상인 장르 선택
+# ---------------------------------
+genre_counts = box_df["genre"].value_counts()
+
+selected_genres = genre_counts[
+    genre_counts >= 10
+].index.tolist()
+
+box_df = box_df[
+    box_df["genre"].isin(selected_genres)
+].copy()
+
+# ---------------------------------
+# 박스플롯 그리기
+# ---------------------------------
+if not box_df.empty:
+
+    # 장르별 영화 편수 순서로 표시
+    genre_order = (
+        box_df["genre"]
+        .value_counts()
+        .index.tolist()
+    )
+
+    fig5 = px.box(
+        box_df,
+        x="genre",
+        y="total_audi",
+        color="genre",
+        points="outliers",
+        hover_name="movieNm",
+        category_orders={
+            "genre": genre_order
+        },
+        custom_data=["movieNm"],
+        labels={
+            "genre": "장르",
+            "total_audi": "총 관객수(명)",
+        },
+        title="영화 10편 이상인 장르의 총 관객수 분포",
+    )
+
+    # 이상치 점에 마우스를 올리면 영화명과 관객수 표시
+    fig5.update_traces(
+        hovertemplate=(
+            "<b>영화명: %{customdata[0]}</b><br>"
+            "장르: %{x}<br>"
+            "총 관객수: %{y:,.0f}명"
+            "<extra></extra>"
+        ),
+        marker=dict(
+            size=8,
+            opacity=0.8,
+        ),
+        boxmean=True,
+    )
+
+    fig5.update_layout(
+        height=650,
+        xaxis_title="장르",
+        yaxis_title="총 관객수(명)",
+        showlegend=False,
+        margin=dict(t=70, b=40, l=40, r=20),
+    )
+
+    st.plotly_chart(
+        fig5,
+        use_container_width=True
+    )
+
+    # ---------------------------------
+    # 그래프 해석 문구
+    # ---------------------------------
+    st.markdown("#### 💡 이 그래프로 알 수 있는 것")
+
+    st.info(
+        "상자의 가운데 선은 장르별 총 관객수의 중앙값을, "
+        "상자의 높이는 가운데 50% 영화의 관객수 범위를 나타냅니다. "
+        "수염 밖에 표시된 점은 이상치이며, 마우스를 올리면 "
+        "해당 영화명과 총 관객수를 확인할 수 있습니다."
+    )
+
+else:
+    st.warning(
+        "영화가 10편 이상인 장르 중 "
+        "박스플롯을 그릴 수 있는 데이터가 없습니다."
+    )
