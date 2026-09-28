@@ -412,3 +412,127 @@ if not hist_df.empty:
 
 else:
     st.warning("총 관객수 데이터가 없습니다.")
+
+# ==================================================
+# 그래프 4. 개봉일 스크린수와 총 관객의 산점도
+# ==================================================
+st.divider()
+
+st.header("그래프 4. 개봉일 스크린수와 총 관객의 관계")
+
+st.markdown(
+    "영화가 개봉일에 얼마나 많은 스크린을 확보했는지와 "
+    "최종 총 관객수 사이의 관계를 살펴봅니다."
+)
+
+# ---------------------------------
+# 산점도 데이터 준비
+# ---------------------------------
+scatter_df = df.copy()
+
+# 숫자형으로 변환
+scatter_df["first_scrn"] = pd.to_numeric(
+    scatter_df["first_scrn"],
+    errors="coerce"
+)
+
+scatter_df["total_audi"] = pd.to_numeric(
+    scatter_df["total_audi"],
+    errors="coerce"
+)
+
+# 필요한 데이터가 있는 행만 사용
+scatter_df = scatter_df.dropna(
+    subset=["first_scrn", "total_audi", "genre"]
+).copy()
+
+# 영화명과 장르 결측치 처리
+scatter_df["movieNm"] = (
+    scatter_df["movieNm"]
+    .fillna("영화명 미상")
+    .astype(str)
+)
+
+scatter_df["genre"] = (
+    scatter_df["genre"]
+    .fillna("미분류")
+    .astype(str)
+    .str.split("|")
+    .str[0]
+    .str.strip()
+)
+
+scatter_df["genre"] = scatter_df["genre"].replace(
+    "", "미분류"
+)
+
+# 스크린 수와 관객수가 0보다 큰 영화만 사용
+scatter_df = scatter_df[
+    (scatter_df["first_scrn"] > 0)
+    & (scatter_df["total_audi"] > 0)
+].copy()
+
+
+# ---------------------------------
+# 산점도 그리기
+# ---------------------------------
+if not scatter_df.empty:
+
+    fig4 = px.scatter(
+        scatter_df,
+        x="first_scrn",
+        y="total_audi",
+        color="genre",
+        hover_name="movieNm",
+        hover_data={
+            "first_scrn": ":,.0f",
+            "total_audi": ":,.0f",
+            "genre": True,
+        },
+        labels={
+            "first_scrn": "개봉일 스크린수(개)",
+            "total_audi": "총 관객수(명)",
+            "genre": "장르",
+        },
+        title="개봉일 스크린수와 총 관객수의 관계",
+        opacity=0.75,
+    )
+
+    fig4.update_traces(
+        marker=dict(
+            size=10,
+            line=dict(width=0.5, color="white"),
+        ),
+        hovertemplate=(
+            "<b>%{hovertext}</b><br>"
+            "장르: %{fullData.name}<br>"
+            "개봉일 스크린수: %{x:,.0f}개<br>"
+            "총 관객수: %{y:,.0f}명"
+            "<extra></extra>"
+        ),
+    )
+
+    fig4.update_layout(
+        height=650,
+        xaxis_title="개봉일 스크린수(개)",
+        yaxis_title="총 관객수(명)",
+        legend_title_text="장르",
+        margin=dict(t=70, b=40, l=40, r=20),
+    )
+
+    st.plotly_chart(
+        fig4,
+        use_container_width=True
+    )
+
+    st.markdown("#### 💡 이 그래프로 알 수 있는 것")
+
+    st.info(
+        "개봉일 스크린수가 많은 영화와 총 관객수가 많은 영화가 "
+        "어떤 관계를 보이는지 살펴보고, 장르별로 영화들의 분포를 "
+        "비교할 수 있습니다. 다만 스크린수와 총 관객의 관계만으로 "
+        "스크린수가 관객 증가의 원인이라고 단정할 수는 없습니다."
+    )
+
+else:
+    st.warning("산점도를 그릴 수 있는 데이터가 없습니다.")
