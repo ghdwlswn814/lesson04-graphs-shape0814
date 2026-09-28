@@ -825,3 +825,113 @@ else:
     st.warning(
         "버블 그래프를 그릴 수 있는 데이터가 없습니다."
     )
+
+# ==================================================
+# 그래프 7. 제작 국가별 장르 선버스트 그래프
+# ==================================================
+st.divider()
+
+st.header("그래프 7. 제작 국가별 장르 분포")
+
+st.markdown(
+    "제작 국가에서 장르로 내려가는 계층 구조를 통해 "
+    "국가별 영화 구성과 장르 분포를 살펴봅니다."
+)
+
+# ---------------------------------
+# 선버스트 데이터 준비
+# ---------------------------------
+sunburst_df = df.copy()
+
+# 제작 국가 결측치 처리
+sunburst_df["nation"] = (
+    sunburst_df["nation"]
+    .fillna("미분류")
+    .astype(str)
+    .str.strip()
+)
+
+sunburst_df["nation"] = sunburst_df["nation"].replace(
+    "", "미분류"
+)
+
+# 장르가 여러 개면 첫 번째 장르만 사용
+sunburst_df["genre"] = (
+    sunburst_df["genre"]
+    .fillna("미분류")
+    .astype(str)
+    .str.split("|")
+    .str[0]
+    .str.strip()
+)
+
+sunburst_df["genre"] = sunburst_df["genre"].replace(
+    "", "미분류"
+)
+
+# 영화명 결측치 처리
+sunburst_df["movieNm"] = (
+    sunburst_df["movieNm"]
+    .fillna("영화명 미상")
+    .astype(str)
+)
+
+# 국가별 장르별 영화 편수 집계
+sunburst_counts = (
+    sunburst_df
+    .groupby(["nation", "genre"])
+    .size()
+    .reset_index(name="영화 편수")
+)
+
+# ---------------------------------
+# 선버스트 그래프 그리기
+# ---------------------------------
+if not sunburst_counts.empty:
+
+    fig7 = px.sunburst(
+        sunburst_counts,
+        path=["nation", "genre"],
+        values="영화 편수",
+        title="제작 국가 → 장르별 영화 편수",
+        color="nation",
+        hover_data={
+            "영화 편수": True
+        },
+    )
+
+    fig7.update_traces(
+        textinfo="label",
+        hovertemplate=(
+            "<b>%{label}</b><br>"
+            "영화 편수: %{value}편"
+            "<extra></extra>"
+        ),
+        insidetextorientation="radial",
+    )
+
+    fig7.update_layout(
+        height=750,
+        margin=dict(t=70, b=30, l=20, r=20),
+    )
+
+    st.plotly_chart(
+        fig7,
+        use_container_width=True
+    )
+
+    # ---------------------------------
+    # 그래프 해석 문구
+    # ---------------------------------
+    st.markdown("#### 💡 이 그래프로 알 수 있는 것")
+
+    st.info(
+        "제작 국가별 영화 편수와 각 국가에서 많이 등장하는 장르를 "
+        "비교할 수 있으며, 칸의 크기를 통해 전체 영화에서 "
+        "각 국가와 장르가 차지하는 비중을 확인할 수 있습니다."
+    )
+
+else:
+    st.warning(
+        "선버스트 그래프를 그릴 수 있는 데이터가 없습니다."
+    )
