@@ -299,3 +299,116 @@ st.info(
     "장르별 관객 규모와 각 장르 안에서 총 관객이 많은 영화 및 "
     "상대적으로 적은 영화를 면적을 통해 비교할 수 있습니다."
 )
+
+# ==================================================
+# 그래프 3. 총 관객수 히스토그램
+# ==================================================
+st.divider()
+
+st.header("그래프 3. 영화별 총 관객수 분포")
+
+st.markdown(
+    "영화별 총 관객수가 어떤 구간에 많이 분포하는지 살펴봅니다."
+)
+
+# 데이터 복사 및 숫자형 변환
+hist_df = df.copy()
+
+hist_df["total_audi"] = pd.to_numeric(
+    hist_df["total_audi"],
+    errors="coerce"
+)
+
+hist_df = hist_df.dropna(
+    subset=["total_audi"]
+)
+
+# 관객수가 0명 초과인 영화만 사용
+hist_df = hist_df[
+    hist_df["total_audi"] > 0
+].copy()
+
+if not hist_df.empty:
+
+    # 가장 관객이 많은 영화
+    max_movie = hist_df.loc[
+        hist_df["total_audi"].idxmax()
+    ]
+
+    max_movie_name = max_movie["movieNm"]
+    max_movie_audience = max_movie["total_audi"]
+
+    # 히스토그램
+    fig3 = px.histogram(
+        hist_df,
+        x="total_audi",
+        nbins=20,
+        title="영화별 총 관객수 히스토그램",
+        labels={
+            "total_audi": "총 관객수(명)",
+            "count": "영화 편수"
+        },
+        hover_data={
+            "total_audi": ":,.0f"
+        },
+    )
+
+    fig3.update_traces(
+        marker_line_color="white",
+        marker_line_width=1,
+        hovertemplate=(
+            "총 관객수 구간: %{x:,.0f}명<br>"
+            "영화 편수: %{y}편"
+            "<extra></extra>"
+        ),
+    )
+
+    fig3.update_layout(
+        height=550,
+        xaxis_title="총 관객수(명)",
+        yaxis_title="영화 편수",
+        bargap=0.08,
+        margin=dict(t=70, b=40, l=30, r=20),
+    )
+
+    st.plotly_chart(
+        fig3,
+        use_container_width=True
+    )
+
+    # ---------------------------------
+    # 그래프 해석 문구
+    # ---------------------------------
+
+    # 가장 많은 영화가 포함된 구간 계산
+    counts, bin_edges = pd.cut(
+        hist_df["total_audi"],
+        bins=20,
+        retbins=True,
+        include_lowest=True
+    )
+
+    bin_counts = counts.value_counts(
+        sort=False
+    )
+
+    most_common_bin = bin_counts.idxmax()
+
+    lower = most_common_bin.left
+    upper = most_common_bin.right
+
+    most_common_count = bin_counts.max()
+
+    st.markdown("#### 💡 이 그래프로 알 수 있는 것")
+
+    st.info(
+        f"영화 {len(hist_df):,}편 중 가장 많은 영화가 몰린 구간은 "
+        f"{lower:,.0f}명~{upper:,.0f}명이며, "
+        f"이 구간에 {most_common_count:,}편이 포함되어 있습니다. "
+        f"총 관객이 가장 많은 영화는 "
+        f"'{max_movie_name}'으로, "
+        f"총 관객은 {max_movie_audience:,.0f}명입니다."
+    )
+
+else:
+    st.warning("총 관객수 데이터가 없습니다.")
