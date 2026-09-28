@@ -1047,3 +1047,121 @@ else:
     st.warning(
         "산점도를 그릴 수 있는 데이터가 없습니다."
     )
+
+# --------------------------------------------------
+# 그래프 8. 상위 10% 영화의 관객 비중 (파레토 차트)
+# --------------------------------------------------
+
+st.divider()
+
+question8 = "전체 관객 중 상위 10% 영화가 차지하는 비중은 얼마나 되는가"
+
+st.header("그래프 8. " + question8)
+
+# 필요한 데이터 정리
+pareto_df = df[["movieNm", "days_in_top10", "total_audi"]].copy()
+
+pareto_df["days_in_top10"] = pd.to_numeric(
+    pareto_df["days_in_top10"], errors="coerce"
+)
+pareto_df["total_audi"] = pd.to_numeric(
+    pareto_df["total_audi"], errors="coerce"
+)
+
+pareto_df = pareto_df.dropna(
+    subset=["movieNm", "days_in_top10", "total_audi"]
+)
+
+pareto_df = pareto_df[
+    (pareto_df["days_in_top10"] > 0) &
+    (pareto_df["total_audi"] > 0)
+]
+
+# 총 관객 수가 많은 순서로 정렬
+pareto_df = pareto_df.sort_values(
+    "total_audi", ascending=False
+).reset_index(drop=True)
+
+# 전체 관객 수
+total_audience = pareto_df["total_audi"].sum()
+
+# 상위 10% 영화 수 (최소 1편)
+top_10_count = max(1, int(len(pareto_df) * 0.1))
+
+# 상위 10% 영화 데이터
+top_10_df = pareto_df.head(top_10_count)
+
+# 상위 10% 영화의 관객 비중
+top_10_audience = top_10_df["total_audi"].sum()
+top_10_ratio = top_10_audience / total_audience * 100
+
+# 누적 관객 비중 계산
+pareto_df["누적관객비중"] = (
+    pareto_df["total_audi"].cumsum()
+    / total_audience * 100
+)
+
+# 상위 10% 영화 관객 비중 요약
+col1, col2, col3 = st.columns(3)
+
+col1.metric(
+    "전체 영화 수",
+    f"{len(pareto_df):,}편"
+)
+
+col2.metric(
+    "상위 10% 영화 수",
+    f"{top_10_count:,}편"
+)
+
+col3.metric(
+    "상위 10% 영화의 관객 비중",
+    f"{top_10_ratio:.1f}%"
+)
+
+# 파레토 차트
+import plotly.graph_objects as go
+
+fig8 = go.Figure()
+
+# 영화별 관객 수 산점도
+fig8.add_trace(
+    go.Scatter(
+        x=pareto_df["days_in_top10"],
+        y=pareto_df["total_audi"],
+        mode="markers",
+        name="영화별 총 관객",
+        text=pareto_df["movieNm"],
+        customdata=pareto_df[["누적관객비중"]],
+        hovertemplate=(
+            "영화명: %{text}<br>"
+            "10위권 체류 일수: %{x}일<br>"
+            "총 관객 수: %{y:,.0f}명<br>"
+            "누적 관객 비중: %{customdata[0]:.1f}%"
+            "<extra></extra>"
+        )
+    )
+)
+
+fig8.update_layout(
+    title=question8,
+    xaxis_title="10위권에 머문 날수",
+    yaxis_title="총 관객 수 (명)",
+    yaxis=dict(tickformat=","),
+    hovermode="closest",
+    height=600
+)
+
+st.plotly_chart(fig8, use_container_width=True)
+
+st.caption(
+    "이 그래프는 영화별 10위권 체류 일수와 총 관객 수의 관계를 보여 줍니다. "
+    "상위 10% 영화의 관객 비중은 전체 영화의 총 관객 수 중 "
+    "관객 수 기준 상위 10% 영화들이 차지하는 비율입니다."
+)
+
+st.info(
+    f"전체 {len(pareto_df)}편 중 관객 수 상위 "
+    f"{top_10_count}편({top_10_count / len(pareto_df) * 100:.1f}%)이 "
+    f"전체 관객의 {top_10_ratio:.1f}%를 차지합니다."
+)
