@@ -935,3 +935,115 @@ else:
     st.warning(
         "선버스트 그래프를 그릴 수 있는 데이터가 없습니다."
     )
+
+# ==================================================
+# 그래프 8. 첫 주에 관객을 많이 모은 영화가 최종 흥행에도 성공했는가
+# ==================================================
+st.divider()
+
+question8 = "첫 주에 관객을 많이 모은 영화가 최종 흥행에도 성공했는가"
+
+st.header("그래프 8. " + question8)
+
+# ---------------------------------
+# 데이터 준비
+# ---------------------------------
+scatter8_df = df.copy()
+
+# 숫자형으로 변환
+scatter8_df["days_in_top10"] = pd.to_numeric(
+    scatter8_df["days_in_top10"],
+    errors="coerce"
+)
+
+scatter8_df["total_audi"] = pd.to_numeric(
+    scatter8_df["total_audi"],
+    errors="coerce"
+)
+
+# 영화명 결측치 처리
+scatter8_df["movieNm"] = (
+    scatter8_df["movieNm"]
+    .fillna("영화명 미상")
+    .astype(str)
+)
+
+# 필요한 데이터가 있는 행만 사용
+scatter8_df = scatter8_df.dropna(
+    subset=["days_in_top10", "total_audi"]
+).copy()
+
+# 유효한 데이터만 사용
+scatter8_df = scatter8_df[
+    (scatter8_df["days_in_top10"] > 0)
+    & (scatter8_df["total_audi"] > 0)
+].copy()
+
+# ---------------------------------
+# 산점도 그리기
+# ---------------------------------
+if not scatter8_df.empty:
+
+    fig8 = px.scatter(
+        scatter8_df,
+        x="days_in_top10",
+        y="total_audi",
+        hover_name="movieNm",
+        hover_data={
+            "days_in_top10": ":,.0f",
+            "total_audi": ":,.0f",
+        },
+        labels={
+            "days_in_top10": "10위권에 머문 날수(일)",
+            "total_audi": "총 관객수(명)",
+        },
+        title=question8,
+        opacity=0.75,
+    )
+
+    fig8.update_traces(
+        marker=dict(
+            size=10,
+            line=dict(
+                width=0.5,
+                color="white"
+            ),
+        ),
+        hovertemplate=(
+            "<b>영화명: %{hovertext}</b><br>"
+            "10위권에 머문 날수: %{x:,.0f}일<br>"
+            "총 관객수: %{y:,.0f}명"
+            "<extra></extra>"
+        ),
+    )
+
+    fig8.update_layout(
+        height=650,
+        xaxis_title="10위권에 머문 날수(일)",
+        yaxis_title="총 관객수(명)",
+        margin=dict(t=70, b=40, l=40, r=20),
+    )
+
+    st.plotly_chart(
+        fig8,
+        use_container_width=True
+    )
+
+    # ---------------------------------
+    # 그래프 해석 문구
+    # ---------------------------------
+    st.markdown("#### 💡 이 그래프로 알 수 있는 것")
+
+    st.info(
+        "점 하나는 영화 한 편을 나타냅니다. "
+        "오른쪽 위로 점들이 모이는 경향이 있다면 "
+        "10위권에 오래 머문 영화일수록 총 관객수가 많은 "
+        "경향이 있음을 살펴볼 수 있습니다. "
+        "다만 이 그래프는 첫 주 관객수가 아닌 10위권 체류 일수와 "
+        "총 관객수의 관계를 보여 줍니다."
+    )
+
+else:
+    st.warning(
+        "산점도를 그릴 수 있는 데이터가 없습니다."
+    )
